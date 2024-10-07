@@ -39,6 +39,7 @@ export default class Set extends SfCommand<CpqSettingsSetResult> {
     'api-version': orgApiVersionFlagWithDeprecations,
     inputfile: Flags.string({ char: 'f', summary: messages.getMessage('flags.inputfile.summary'), required: true }),
     'run-scripts': Flags.boolean({ char: 'e', summary: messages.getMessage('flags.runScripts.summary'), required: false }),
+    'generate-user-perm': Flags.boolean({ char: 'g', summary: `run 'Generate Integration User Permissions'`, required: false }),
     // loglevel is a no-op, but this flag is added to avoid breaking scripts and warn users who are using it
     loglevel,
   };
@@ -46,12 +47,14 @@ export default class Set extends SfCommand<CpqSettingsSetResult> {
   private org!: Org;
   private conn!: Connection;
   private runScripts!: boolean;
+  private generateUserPerms!: boolean;
 
   public async run(): Promise<CpqSettingsSetResult> {
     const { flags } = await this.parse(Set);
 
     this.org = flags['target-org'];
     this.runScripts = !!flags['run-scripts'];
+    this.generateUserPerms = !!flags['generate-user-perm'];
     this.conn = this.org.getConnection(flags['api-version']);
 
     this.log(
@@ -194,9 +197,33 @@ export default class Set extends SfCommand<CpqSettingsSetResult> {
       }
     }
 
+    if (this.generateUserPerms) {
+      // Navigate to Additional Settings
+      this.log('\n=== Generating Integration User Permissions ===');
+      this.log(`Switching to tab 'Pricing and Calculation'`);
 
+      // Getting id for label
+      const tabs = await page.$$(`xpath/.//td[contains(text(), 'Pricing and Calculation')]`);
+      if (tabs.length !== 1) this.error(`Tab 'Pricing and Calculation' not found!`);
+
+      // Clicking on tab
+      const tab = tabs[0].asElement() as ElementHandle<Element>;
+      await tab.click();
+      await navigationPromise;
+
+      this.log(`Clicking 'Generate Integration User Permissions'`);
+
+      const button = await page.$$(`xpath/.//input[@value="Generate Integration User Permissions"]`);
+      if (button.length !== 1) {this.log(`Button 'Generate Integration User Permissions' not found! Most likely permissions already generated.`);} else {
+        await button[0].click();
+        await navigationPromise;
+
+        this.log(`Generating Integration User Permissions`);
+      }
+    }
 
     if (this.runScripts) {
+      this.log('\n=== Executing Scripts ===');
       // Navigate to Additional Settings
       this.log(`Switching to tab 'Additional Settings'`);
 
@@ -220,7 +247,7 @@ export default class Set extends SfCommand<CpqSettingsSetResult> {
     }
 
     // Saving changes
-    this.spinner.start('Saving changes', undefined, { stdout: true });
+    this.spinner.start('Saving changes', undefined, { stdout: false });
     const saveButton = await page.$("#page\\:form input[value='Save']");
     await saveButton?.click();
     await navigationPromise;
