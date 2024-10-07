@@ -38,17 +38,20 @@ export default class Set extends SfCommand<CpqSettingsSetResult> {
     'target-org': requiredOrgFlagWithDeprecations,
     'api-version': orgApiVersionFlagWithDeprecations,
     inputfile: Flags.string({ char: 'f', summary: messages.getMessage('flags.inputfile.summary'), required: true }),
+    'run-scripts': Flags.boolean({ char: 'e', summary: messages.getMessage('flags.runScripts.summary'), required: false }),
     // loglevel is a no-op, but this flag is added to avoid breaking scripts and warn users who are using it
     loglevel,
   };
 
   private org!: Org;
   private conn!: Connection;
+  private runScripts!: boolean;
 
   public async run(): Promise<CpqSettingsSetResult> {
     const { flags } = await this.parse(Set);
 
     this.org = flags['target-org'];
+    this.runScripts = !!flags['run-scripts'];
     this.conn = this.org.getConnection(flags['api-version']);
 
     this.log(
@@ -189,6 +192,31 @@ export default class Set extends SfCommand<CpqSettingsSetResult> {
           newValue: cpqSettings[tabKey][key],
         };
       }
+    }
+
+
+
+    if (this.runScripts) {
+      // Navigate to Additional Settings
+      this.log(`Switching to tab 'Additional Settings'`);
+
+      // Getting id for label
+      const tabs = await page.$$(`xpath/.//td[contains(text(), 'Additional Settings')]`);
+      if (tabs.length !== 1) this.error(`Tab 'Additional Settings' not found!`);
+
+      // Clicking on tab
+      const tab = tabs[0].asElement() as ElementHandle<Element>;
+      await tab.click();
+      await navigationPromise;
+
+      this.log(`Clicking 'Execute Scripts'`);
+
+      const button = await page.$$(`xpath/.//input[@value="Execute Scripts"]`);
+      if (button.length !== 1) this.error(`Button 'Execute Scripts' not found!`); 
+      await button[0].click();
+      await navigationPromise;
+
+      this.log(`Executing scripts`);
     }
 
     // Saving changes
