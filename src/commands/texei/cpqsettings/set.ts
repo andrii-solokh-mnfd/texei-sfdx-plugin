@@ -39,7 +39,7 @@ export default class Set extends SfCommand<CpqSettingsSetResult> {
     'api-version': orgApiVersionFlagWithDeprecations,
     inputfile: Flags.string({ char: 'f', summary: messages.getMessage('flags.inputfile.summary'), required: true }),
     'run-scripts': Flags.boolean({ char: 'e', summary: messages.getMessage('flags.runScripts.summary'), required: false }),
-    'generate-user-perm': Flags.boolean({ char: 'g', summary: `run 'Generate Integration User Permissions'`, required: false }),
+    'auth-service': Flags.boolean({ char: 'a', summary: `authorize service'`, required: false }),
     // loglevel is a no-op, but this flag is added to avoid breaking scripts and warn users who are using it
     loglevel,
   };
@@ -47,14 +47,14 @@ export default class Set extends SfCommand<CpqSettingsSetResult> {
   private org!: Org;
   private conn!: Connection;
   private runScripts!: boolean;
-  private generateUserPerms!: boolean;
+  private authService!: boolean;
 
   public async run(): Promise<CpqSettingsSetResult> {
     const { flags } = await this.parse(Set);
 
     this.org = flags['target-org'];
     this.runScripts = !!flags['run-scripts'];
-    this.generateUserPerms = !!flags['generate-user-perm'];
+    this.authService = !!flags['auth-service'];
     this.conn = this.org.getConnection(flags['api-version']);
 
     this.log(
@@ -241,7 +241,7 @@ export default class Set extends SfCommand<CpqSettingsSetResult> {
 
     this.spinner.stop('Done.');
 
-    if (this.generateUserPerms) {
+    if (this.authService) {
       // Navigate to Additional Settings
       this.log('\n=== Authorize new calculation service ===');
       this.log(`Switching to tab 'Pricing and Calculation'`);
