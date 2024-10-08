@@ -197,30 +197,6 @@ export default class Set extends SfCommand<CpqSettingsSetResult> {
       }
     }
 
-    if (this.generateUserPerms) {
-      // Navigate to Additional Settings
-      this.log('\n=== Generating Integration User Permissions ===');
-      this.log(`Switching to tab 'Pricing and Calculation'`);
-
-      // Getting id for label
-      const tabs = await page.$$(`xpath/.//td[contains(text(), 'Pricing and Calculation')]`);
-      if (tabs.length !== 1) this.error(`Tab 'Pricing and Calculation' not found!`);
-
-      // Clicking on tab
-      const tab = tabs[0].asElement() as ElementHandle<Element>;
-      await tab.click();
-      await navigationPromise;
-
-      this.log(`Clicking 'Generate Integration User Permissions'`);
-
-      const button = await page.$$(`xpath/.//input[@value="Generate Integration User Permissions"]`);
-      if (button.length !== 1) {this.log(`Button 'Generate Integration User Permissions' not found! Most likely permissions already generated.`);} else {
-        await button[0].click();
-        await navigationPromise;
-
-        this.log(`Generating Integration User Permissions`);
-      }
-    }
 
     if (this.runScripts) {
       this.log('\n=== Executing Scripts ===');
@@ -253,7 +229,6 @@ export default class Set extends SfCommand<CpqSettingsSetResult> {
     await navigationPromise;
     // Timeout to wait for save, there should be a better way to do it
     await new Promise((r) => setTimeout(r, 3000));
-
     // Look for errors
     const errors = await page.$('.message.errorM3 .messageText');
     if (errors) {
@@ -265,6 +240,52 @@ export default class Set extends SfCommand<CpqSettingsSetResult> {
     }
 
     this.spinner.stop('Done.');
+
+    if (this.generateUserPerms) {
+      // Navigate to Additional Settings
+      this.log('\n=== Authorize new calculation service ===');
+      this.log(`Switching to tab 'Pricing and Calculation'`);
+
+      // Getting id for label
+      const tabs = await page.$$(`xpath/.//td[contains(text(), 'Pricing and Calculation')]`);
+      if (tabs.length !== 1) this.error(`Tab 'Pricing and Calculation' not found!`);
+
+      // Clicking on tab
+      const tab = tabs[0].asElement() as ElementHandle<Element>;
+      await tab.click();
+      await navigationPromise;
+
+      this.log(`Clicking 'Authorize new calculation service'`);
+
+      const button = await page.$$(`xpath/.//a[contains(text(), 'Authorize new calculation service')]`);
+      if (button.length !== 1) {this.log(`Button 'Authorize new calculation service' not found! Most likely service is already authorized.`);} else {
+        await navigationPromise;
+
+        const [target] = await Promise.all([
+          new Promise(resolve => browser.once('targetcreated', resolve)),
+          button[0].click()
+        ]);
+
+        const newPage = await (target as puppeteer.Target).page();
+
+        if (newPage) {
+          await newPage.bringToFront();
+        } else {
+          this.error('Failed to open new page for authorization.');
+        }
+
+        await newPage.waitForSelector('input[title="Allow"]');
+
+        const allowButton = await newPage.$$(`input[title="Allow"]`);
+        if (allowButton.length !== 1) this.error(`Button ' Allow ' not found`);
+        this.log(`Service authorized`);
+
+        await Promise.all([
+          new Promise(resolve => browser.once('targetdestroyed', resolve)),
+          allowButton[0].click()
+        ]);
+      }
+    }
 
     await browser.close();
 
