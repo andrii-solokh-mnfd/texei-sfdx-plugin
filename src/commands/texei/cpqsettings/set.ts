@@ -222,8 +222,9 @@ export default class Set extends SfCommand<CpqSettingsSetResult> {
       this.log(`Executing scripts`);
     }
 
+    this.log('\n=== Saving Changes ===');
     // Saving changes
-    this.spinner.start('Saving changes', undefined, { stdout: false });
+    this.spinner.start('Saving changes', undefined, { stdout: true });
     const saveButton = await page.$("#page\\:form input[value='Save']");
     await saveButton?.click();
     await navigationPromise;
@@ -258,7 +259,7 @@ export default class Set extends SfCommand<CpqSettingsSetResult> {
       this.log(`Clicking 'Authorize new calculation service'`);
 
       const button = await page.$$(`xpath/.//a[contains(text(), 'Authorize new calculation service')]`);
-      if (button.length !== 1) {this.log(`Button 'Authorize new calculation service' not found! Most likely service is already authorized.`);} else {
+      if (button.length !== 1) {this.log(`Button 'Authorize new calculation service' not found!\nMost likely service is already authorized.`);} else {
         await navigationPromise;
 
         const [target] = await Promise.all([
