@@ -198,6 +198,31 @@ export default class Set extends SfCommand<CpqSettingsSetResult> {
     }
 
 
+    this.log('\n=== Saving Changes ===');
+    // Saving changes
+    this.spinner.start('Saving changes', undefined, { stdout: true });
+    const saveButton = await page.$(`input[value="Save"]`);
+    if (saveButton) {
+      await saveButton.click();
+      await navigationPromise;
+    } else {
+      this.error('Save button not found!');
+    }
+
+    // Timeout to wait for save, there should be a better way to do it
+    await new Promise((r) => setTimeout(r, 3000));
+    // Look for errors
+    const errors = await page.$('.message.errorM3 .messageText');
+    if (errors) {
+      let err: string = (await (await errors.getProperty('innerText')).jsonValue()) as string;
+      err = err.replace(/(\r\n|\n|\r)/gm, '');
+      this.spinner.stop('error');
+      await browser.close();
+      throw new SfError(err);
+    }
+
+    this.spinner.stop('Done.');
+
     if (this.runScripts) {
       this.log('\n=== Executing Scripts ===');
       // Navigate to Additional Settings
@@ -221,26 +246,6 @@ export default class Set extends SfCommand<CpqSettingsSetResult> {
 
       this.log(`Executing scripts`);
     }
-
-    this.log('\n=== Saving Changes ===');
-    // Saving changes
-    this.spinner.start('Saving changes', undefined, { stdout: true });
-    const saveButton = await page.$("#page\\:form input[value='Save']");
-    await saveButton?.click();
-    await navigationPromise;
-    // Timeout to wait for save, there should be a better way to do it
-    await new Promise((r) => setTimeout(r, 3000));
-    // Look for errors
-    const errors = await page.$('.message.errorM3 .messageText');
-    if (errors) {
-      let err: string = (await (await errors.getProperty('innerText')).jsonValue()) as string;
-      err = err.replace(/(\r\n|\n|\r)/gm, '');
-      this.spinner.stop('error');
-      await browser.close();
-      throw new SfError(err);
-    }
-
-    this.spinner.stop('Done.');
 
     if (this.authService) {
       // Navigate to Additional Settings
