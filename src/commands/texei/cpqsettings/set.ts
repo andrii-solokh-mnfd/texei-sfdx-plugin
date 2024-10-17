@@ -80,7 +80,7 @@ export default class Set extends SfCommand<CpqSettingsSetResult> {
     const page = await browser.newPage();
 
     this.log(`Logging in to instance ${instanceUrl}`);
-    await page.goto(frontdoorUrl, { waitUntil: ['domcontentloaded', 'networkidle0'] });
+    await page.goto(frontdoorUrl, { waitUntil: ['domcontentloaded'] });
     const navigationPromise = page.waitForNavigation();
 
     this.log(`Navigating to CPQ Settings Page ${cpqSettingsUrl}`);
