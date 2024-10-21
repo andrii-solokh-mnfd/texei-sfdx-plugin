@@ -309,9 +309,9 @@ export default class Set extends SfCommand<CpqSettingsSetResult> {
   private async getSettingURL(urlOfInstance: string): Promise<string> {
     let prefix;
 
-    if (this.org.isScratch()) {
+    if (urlOfInstance.includes('scratch')) {
       prefix = "--sbqq.scratch";
-    } else if (this.org.isSandbox()) {
+    } else if (urlOfInstance.includes('sandbox')) {
       prefix = "--sbqq.sandbox";
     } else {
       prefix = "--sbqq";
